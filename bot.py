@@ -78,7 +78,7 @@ async def add_states():
             print(f'> Too early to insert. Waiting {int(last_insert - time() + INTERVAL)} seconds.')
             await asyncio.sleep(last_insert - time() + INTERVAL)
 
-# List db on message
+# Message actions
 @client.event
 async def on_message(message):
     if message.author == client.user:
