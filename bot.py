@@ -129,12 +129,12 @@ async def on_message(message):
             await client.send_message(message.channel, 'No records deleted.')
 
     if message.content.startswith('$plot '):
-        date = parsedate(message.content)
-        if not date:
-            msg = 'Please enter your arguments as "dd/mm/yyyy length"'
+        plot = parsedate(message.content)
+        if not plot:
+            msg = 'Sorry: please enter your arguments as `dd/mm/yyyy length`.'
             await client.send_message(message.channel, msg)
         else: 
-            create_graph(date[0], date[1], '')
+            create_graph(plot[0], plot[1], '')
             await client.send_file(message.channel, 'plot.png')
 
 

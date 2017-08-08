@@ -1,13 +1,10 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 from time import time, mktime
 from datetime import date
 from sqlalchemy import create_engine, func, select as sqlselect, between
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
-
-import matplotlib.pyplot as plt
-
-
 
 # Create db session
 engine = create_engine('sqlite:///admin_log.db')
