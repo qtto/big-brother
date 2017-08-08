@@ -5,6 +5,7 @@ from time import time
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
+from plot import create_graph, date_to_unix
 
 # Read config file
 def read_config():
@@ -44,6 +45,20 @@ class Admin_state:
 
     def __repr__(self):
         return self.name
+
+
+def parsedate(message):
+    message =  message.split(' ')
+    try:
+        args = message[1].split('/')
+
+        day = int(args[0])
+        month = int(args[1])
+        year = int(args[2])
+
+        return [int(date_to_unix(day, month, year)), int(message[2])]
+    except:
+        return False
 
 # Fetch admin list and check current states
 def get_admins():
@@ -112,6 +127,16 @@ async def on_message(message):
             await client.send_message(message.channel, 'Deleted all records.')
         else:
             await client.send_message(message.channel, 'No records deleted.')
+
+    if message.content.startswith('$plot '):
+        date = parsedate(message.content)
+        if not date:
+            msg = 'Please enter your arguments as "dd/mm/yyyy length"'
+            await client.send_message(message.channel, msg)
+        else: 
+            create_graph(date[0], date[1], '')
+            await client.send_file(message.channel, 'plot.png')
+
 
 # Log in
 @client.event
