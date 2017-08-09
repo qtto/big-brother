@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as dates
 from time import time, mktime
-from datetime import date, datetime
-from sqlalchemy import create_engine, func, select as sqlselect, between
+from datetime import date
+from sqlalchemy import create_engine, select as sqlselect, between
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
 
@@ -67,8 +67,8 @@ def create_graph(begin, length, graphtype):
 	adf.scaled[365.] = '%Y'
 
 
-	begin = datetime.fromtimestamp(int(begin)).strftime("%B %d, %Y") # formatted starting date
-	end = datetime.fromtimestamp(int(end)).strftime("%B %d, %Y") # formatted ending date
+	begin = data['timestamp'].iloc[0].strftime("%B %d, %Y") # formatted starting date
+	end = data['timestamp'].iloc[-1].strftime("%B %d, %Y") # formatted ending date
 	plt.title(f'{begin} - {end}', loc='right') # set dates as title
 	plt.xlabel('') # remove label x axis
 	plt.ylim(ymin=0) # always start at 0
