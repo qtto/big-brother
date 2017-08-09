@@ -66,8 +66,10 @@ def create_graph(begin, length, graphtype):
 	adf.scaled[30.] = '%Y-%m' # set the > 1Y scale
 	adf.scaled[365.] = '%Y'
 
-	plt.title(f'{datetime.fromtimestamp(int(begin)).strftime("%B %d, %Y")} - \
-		{datetime.fromtimestamp(int(end)).strftime("%B %d, %Y")}', loc='right') # set dates as title
+
+	begin = datetime.fromtimestamp(int(begin)).strftime("%B %d, %Y") # formatted starting date
+	end = datetime.fromtimestamp(int(end)).strftime("%B %d, %Y") # formatted ending date
+	plt.title(f'{begin} - {end}', loc='right') # set dates as title
 	plt.xlabel('') # remove label x axis
 	plt.ylim(ymin=0) # always start at 0
 	plt.savefig('plot.png', bbox_inches='tight')
