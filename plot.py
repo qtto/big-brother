@@ -1,7 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import matplotlib.dates as dates
 from time import time, mktime
-from datetime import date
+from datetime import date, datetime
 from sqlalchemy import create_engine, func, select as sqlselect, between
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
@@ -39,9 +41,35 @@ def create_graph(begin, length, graphtype):
 
 	data = data.groupby('timestamp').sum().reset_index()
 	data['ingame'] = data['ingame'].astype(int)
-	
-	data.plot(x='timestamp', y='ingame')
-	plt.ylim(ymin=0)
+
+	plt.figure()
+	data.plot(x='timestamp', y='ingame', drawstyle="steps", color = 'k', legend=False)
+	ax = plt.gca()
+	ax.yaxis.grid(which="major", color='#dddddd', linestyle='--', linewidth=1) # horizontal gridlines
+	ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True)) # show y axis as ints
+	ax.spines['top'].set_visible(False) # remove top frame
+	ax.spines['right'].set_visible(False) #remove right frame
+
+	# time formatting
+	xtick_locator = dates.AutoDateLocator()
+	xtick_formatter = dates.AutoDateFormatter(xtick_locator)
+
+	ax.xaxis.set_major_locator(xtick_locator)
+	ax.xaxis.set_major_formatter(xtick_formatter)
+
+	xax = ax.get_xaxis() # get the x-axis
+	adf = xax.get_major_formatter() # the the auto-formatter
+
+	adf.scaled[1/(24.*60.)] = '%H:%M'  # set the < 1d scale 
+	adf.scaled[1./24] = '%d/%m %H:%M'  # set the > 1d  < 1m scale 
+	adf.scaled[1.0] = '%Y-%m-%d' # set the > 1dm < 1y scale
+	adf.scaled[30.] = '%Y-%m' # set the > 1Y scale
+	adf.scaled[365.] = '%Y'
+
+	plt.title(f'{datetime.fromtimestamp(int(begin)).strftime("%B %d, %Y")} - \
+		{datetime.fromtimestamp(int(end)).strftime("%B %d, %Y")}', loc='right') # set dates as title
+	plt.xlabel('') # remove label x axis
+	plt.ylim(ymin=0) # always start at 0
 	plt.savefig('plot.png', bbox_inches='tight')
 
 
