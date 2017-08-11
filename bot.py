@@ -2,6 +2,7 @@ import discord
 import asyncio
 from configparser import ConfigParser
 from time import time
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
@@ -47,18 +48,66 @@ class Admin_state:
         return self.name
 
 
-def parsedate(message):
+def relative_date(type, amount):
+    now = datetime.now()
+
+    if type == 'hour':
+        date = now - timedelta(hours=amount)
+        return date_to_unix(date.hour, date.day, date.month, date.year)
+
+    if type == 'day':
+        date = now - timedelta(days=amount)
+        return date_to_unix(0, date.day, date.month, date.year)
+
+    if type == 'week':
+        date = now - timedelta(days=now.isoweekday() % 7 + (7*amount))
+        return date_to_unix(0, date.day, date.month, date.year)
+
+    if type == 'month':
+        month = (now.month - amount) % 12
+        year = now.year - amount // 12
+        return date_to_unix(0, 1, month, year)
+
+    if type == 'year':
+        return date_to_unix(0, 1, 1, (now.year - amount))
+
+
+def parse_msg(message):
     message =  message.split(' ')
+    values = {'hour': 1, 'day': 24, 'week': 24*7, 
+              'month': 24*31, 'year': 24*365}
+
+    if message[1] == 'today':
+        return [int(relative_date('day', 0)), 24]
+
+    if message[1] == 'yesterday':
+        return [int(relative_date('day', 1)), 24]
+
+    if message[1] == 'this' and message[2] in values:
+        return [int(relative_date(message[2], 0)), values[message[2]]]
+
+    if message[1] == 'last':
+        if message[2] in values:
+            return [int(relative_date(message[2], 1)), values[message[2]]]
+
+        elif message[3][:-1] in values:
+            try:
+                value = values[message[3][:-1]]
+                number = int(message[2])
+                return [int(relative_date(message[3][:-1], number)), number * value]
+            except:
+                return False
+
     try:
         args = message[1].split('/')
-
         day = int(args[0])
         month = int(args[1])
         year = int(args[2])
-
-        return [int(date_to_unix(day, month, year)), int(message[2])]
+        return [int(date_to_unix(0, day, month, year)), int(24 * message[2])]
     except:
         return False
+
+
 
 # Fetch admin list and check current states
 def get_admins():
@@ -129,13 +178,15 @@ async def on_message(message):
             await client.send_message(message.channel, 'No records deleted.')
 
     if message.content.startswith('$plot '):
-        plot = parsedate(message.content)
+        plot = parse_msg(message.content)
         if not plot:
-            msg = 'Sorry: please enter your arguments as `dd/mm/yyyy length`.'
+            msg = 'Sorry: please enter your arguments as `dd/mm/yyyy length`, `last / this hour/day/month/year` or `last x hours/././.`.'
             await client.send_message(message.channel, msg)
         else: 
-            create_graph(plot[0], plot[1], '')
-            await client.send_file(message.channel, 'plot.png')
+            if create_graph(plot[0], plot[1], ''):
+                await client.send_file(message.channel, 'plot.png')
+            else:
+                await client.send_message(message.channel, 'No data to plot for that period.')
 
 
 # Log in
