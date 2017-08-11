@@ -77,43 +77,43 @@ def parse_msg(message):
     values = {'hour': 1, 'day': 24, 'week': 24*7,  
               'month': 24 * 31, 'year': 24*365} # hours in an X
 
-    if message[1] == 'today':
+    if message[0] == 'today':
         return [int(relative_date('day', 0)), 24]
 
-    if message[1] == 'yesterday':
+    if message[0] == 'yesterday':
         return [int(relative_date('day', 1)), 24]
 
-    if message[1] == 'this' and message[2] in values: #this day, this week
-        return [int(relative_date(message[2], 0)), values[message[2]]]
+    if message[0] == 'this' and message[1] in values: #this day, this week
+        return [int(relative_date(message[1], 0)), values[message[1]]]
 
-    if message[1] == 'last': # last week, last month
-        if message[2] in values:
-            if message[2] == 'month': # looks bad, but is necessary
+    if message[0] == 'last': # last week, last month
+        if message[1] in values:
+            if message[1] == 'month': # looks bad, but is necessary
                 now = datetime.now()
                 month = (now.month - 1) % 12 or 12 
                 year = now.year - (now.month == 12) # substract year if it's january right now
                 hours_in_month = 24 * monthrange(year, month)[1]
                 return [int(relative_date('month', 1)), hours_in_month]
-            return [int(relative_date(message[2], 1)), values[message[2]]]
+            return [int(relative_date(message[1], 1)), values[message[1]]]
 
-        elif message[3][:-1] in values: # last 91 days, last 2 months
+        elif message[2][:-1] in values: # last 91 days, last 2 months
             try:
-                value = values[message[3][:-1]] # hour(-s), day(-s)...
-                number = int(message[2]) 
+                value = values[message[2][:-1]] # hour(-s), day(-s)...
+                number = int(message[1]) 
                 ''' the 900 at the end of return is because weeks / months introduce an offset
                  since they start from sunday / 1st of the month. This can cause it to not check
                  up until the current date, which we do want. Use hours in a month, it
                  can't overflow anyways '''
-                return [int(relative_date(message[3][:-1], number)), int(number * value + values['month'])]
+                return [int(relative_date(message[2][:-1], number)), int(number * value + values['month'])]
             except:
                 return False
 
     try:
-        args = message[1].split('/')
+        args = message[0].split('/')
         day = int(args[0])
         month = int(args[1])
         year = int(args[2])
-        return [int(date_to_unix(0, day, month, year)), int(24 * message[2])]
+        return [int(date_to_unix(0, day, month, year)), int(24 * message[1])]
     except:
         return False
 
