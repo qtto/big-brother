@@ -74,8 +74,6 @@ def relative_date(type, amount):
 
 
 def parse_msg(message):
-    message =  message.split(' ')
-
     values = {'hour': 1, 'day': 24, 'week': 24*7,  
               'month': 24 * 31, 'year': 24*365} # hours in an X
 
@@ -90,10 +88,10 @@ def parse_msg(message):
 
     if message[1] == 'last': # last week, last month
         if message[2] in values:
-            if message[2] == 'month':
+            if message[2] == 'month': # looks bad, but is necessary
                 now = datetime.now()
-                month = (now.month - 1) % 12 or 12 # looks worse, but is necessary
-                year = now.year - (now.month == 12) # substract year if it's january
+                month = (now.month - 1) % 12 or 12 
+                year = now.year - (now.month == 12) # substract year if it's january right now
                 hours_in_month = 24 * monthrange(year, month)[1]
                 return [int(relative_date('month', 1)), hours_in_month]
             return [int(relative_date(message[2], 1)), values[message[2]]]
@@ -189,7 +187,8 @@ async def on_message(message):
             await client.send_message(message.channel, 'No records deleted.')
 
     if message.content.startswith('$plot '):
-        plot = parse_msg(message.content)
+        no_prefix = message.content.split(' ')[1:]
+        plot = parse_msg(no_prefix)
         if not plot:
             msg = 'Sorry: please enter your arguments as `dd/mm/yyyy length`, `last / this hour/day/month/year` or `last x hours/././.`.'
             await client.send_message(message.channel, msg)
