@@ -7,8 +7,7 @@ Log admin activity.
 
 - ~Implement basic logging functionality~
 - ~Implement basic graph output~
-- Stylize graph to be more informative and nice to look at (axis titles, etc.)
+- ~Stylize graph to be more informative and nice to look at (axis titles, etc.)~ mostly done
 - Implement individual graph outputs
-- Implement different output timespans (defaults as day, week, month, etc.)
-- Implement table cleaning to avoid huge db files somehow (?)
+- ~Implement different output timespans (defaults as day, week, month, etc.)~ could still add `x ... ago`
 - ...
