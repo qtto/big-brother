@@ -44,7 +44,7 @@ def create_graph(begin, length, graphtype):
 
 	try:
 		plt.figure()
-		data.plot(x='timestamp', y='ingame', drawstyle="steps", color = 'k', legend=False)
+		data.plot(x='timestamp', y='ingame', drawstyle="steps", color = 'r', legend=False)
 	except TypeError:
 		return False # probably no data to plot
 
