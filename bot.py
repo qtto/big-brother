@@ -49,6 +49,7 @@ class Admin_state:
         return self.name
 
 
+# Calculates a date relative to the current, with a given offset of x hours / days / weeks / months / years
 def relative_date(type, amount):
     now = datetime.now()
 
@@ -73,6 +74,7 @@ def relative_date(type, amount):
         return date_to_unix(0, 1, 1, (now.year - amount))
 
 
+# Parses the requested time period from a message
 def parse_msg(message):
     values = {'hour': 1, 'day': 24, 'week': 24*7,  
               'month': 24 * 31, 'year': 24*365} # hours in an X
@@ -83,9 +85,11 @@ def parse_msg(message):
     if message[0] == 'yesterday':
         return [int(relative_date('day', 1)), 24]
 
-    if message[0] == 'this' and message[1] in values: #this day, this week
+    # This hour/day/week/month/year...
+    if message[0] == 'this' and message[1] in values: 
         return [int(relative_date(message[1], 0)), values[message[1]]]
 
+    # Last hour/day/week/month/year...
     if message[0] == 'last': # last week, last month
         if message[1] in values:
             if message[1] == 'month': # looks bad, but is necessary
@@ -108,6 +112,7 @@ def parse_msg(message):
             except:
                 return False
 
+    # No keywords: check if a specific date / length was given
     try:
         args = message[0].split('/')
         day = int(args[0])
