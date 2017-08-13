@@ -1,5 +1,6 @@
 import discord
 import asyncio
+from os import path
 from configparser import ConfigParser
 from time import time
 from datetime import datetime, timedelta
@@ -12,7 +13,8 @@ from plot import create_graph, date_to_unix
 # Read config file
 def read_config():
     config = ConfigParser()
-    config.read('config.ini')
+    config_file = path.join(path.dirname(__file__), 'config.ini')
+    config.read(config_file)
     return config['main']
 
 config_main = read_config()
