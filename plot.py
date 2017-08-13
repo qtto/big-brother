@@ -73,8 +73,8 @@ def create_graph(begin, length, graphtype):
 	adf.scaled[365.] = '%Y'
 
 
-	begin = data['timestamp'].iloc[0].strftime("%B %d, %Y") # formatted starting date
-	end = data['timestamp'].iloc[-1].strftime("%B %d, %Y") # formatted ending date
+	begin = data['timestamp'].iloc[0].strftime("%H:%M, %B %d %Y") # formatted starting date
+	end = data['timestamp'].iloc[-1].strftime("%H:%M, %B %d %Y") # formatted ending date
 	plt.title(f'{begin} - {end}', loc='right') # set dates as title
 	plt.xlabel('') # remove label x axis
 	plt.ylim(ymin=0) # always start at 0
