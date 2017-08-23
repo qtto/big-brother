@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sql_declaration import Log, Base
 from plot import create_graph, date_to_unix
+from collections import deque
 
 # Read config file
 def read_config():
@@ -22,7 +23,8 @@ TOKEN = config_main['token']
 ONLINE = config_main['onlinetext']
 GAME = config_main['gamename']
 OWNERID = config_main['owner']
-MAX_OFFSET = 50 # Maximum offset an insert in db can have compared to INTERVAL
+CMD_PREFIX = config_main['cmd_prefix']
+MAX_OFFSET = 50  # Maximum offset an insert in db can have compared to INTERVAL
 try:
     INTERVAL = int(config_main['interval'])
 except TypeError:
@@ -76,8 +78,60 @@ def relative_date(type, amount):
         return date_to_unix(0, 1, 1, (now.year - amount))
 
 
-# Parses the requested time period from a message
+def handle_message(message):
+    """Handle incoming messages"""
+    if message.content.startswith(CMD_PREFIX):
+        command, *params = message.content.split(' ', 1)
+        factory = CommandFactory()
+        command = factory.create_command(command, *params)
+        print(command.execute())
+    else:
+        pass
+
+
+def getopts(message, author, cmd_prefix='$'):
+    if message.startswith(cmd_prefix):
+        command, *params = message.split(' ', 1)
+        params = deque(params.split(' '))
+        parsed = dict()
+        parsed["__command_prefix"] = command[0]
+        parsed["__command"] = command[1:]
+        parsed["__author"] = author
+        print(params)
+        is_kwarg = False
+        while params:
+            param = params.popleft()
+            if param.startswith('--') and is_kwarg:
+                # error: expecting value.
+                return f'error while parsing {message}, impossible syntax while parsing {param} - nesting detected on {pname}.'
+            elif param.startswith('--') and not is_kwarg:
+                if param[2:].startswith('__'):
+                    return f'error while parsing keyword argument {param[2:]}: cannot start with __ (internal usage)'
+                is_kwarg = True
+                pname = param[2:]
+                continue
+            elif param.startswith('-'):
+                parsed[param[1:]] = True  # flag value
+                continue
+            elif is_kwarg:
+                parsed[pname] = param
+                is_kwarg = False
+            else:
+                try:
+                    parsed["positional"].append(param)
+                except KeyError:
+                    parsed["positional"] = []
+                    parsed["positional"].append(param)
+        return parsed
+    else:
+        x = dict()
+        x['_command'] = None
+        x['message'] = f'{author}: {message}'
+        return x
+
+
 def parse_msg(message):
+    """Parse the requested time from a message."""
     values = {'hour': 1, 'day': 24, 'week': 24*7,  
               'month': 24 * 31, 'year': 24*365} # hours in an X
 
@@ -125,16 +179,17 @@ def parse_msg(message):
         return False
 
 
-# Fetch admin list and check current states
 def get_admins():
+    """Fetch admin list and check current states"""
     members = client.get_all_members()
     timestamp = time()
     admins = [user for user in members if 'Staff' in [role.name for role in user.roles]]
     admins = [Admin_state(user, timestamp) for user in admins]
     return admins
 
-# Aadd admin states to db
+
 def insert_state(admins):
+    """Add admin states to db"""
     for admin in admins:
         entry = Log(timestamp = admin.timestamp,
                        userid = admin.id,
@@ -145,12 +200,16 @@ def insert_state(admins):
     session.commit()
     print('> Inserted into DB.')
 
-# Add states to db as bg task
+
 async def add_states():
+    """Add states to db as bg task"""
     await client.wait_until_ready()
     while not client.is_closed:
-        last_insert = int(session.query(func.max(Log.timestamp)).first()[0])
-        if time() - INTERVAL >= last_insert - MAX_OFFSET: # Don't insert next entry too early (e.g. when script restarts)
+        last_insert = session.query(func.max(Log.timestamp)).first()[0]
+        last_insert = int(last_insert) if last_insert is not None else 0
+
+        # Don't insert next entry too early (e.g. when script restarts)
+        if time() - INTERVAL >= last_insert - MAX_OFFSET:
             admins = get_admins()
             insert_state(admins)
             await asyncio.sleep(INTERVAL)
@@ -158,9 +217,20 @@ async def add_states():
             print(f'> Too early to insert. Waiting {int(last_insert - time() + INTERVAL)} seconds.')
             await asyncio.sleep(last_insert - time() + INTERVAL)
 
-# Message actions
+
+def get_entries():
+    ids = session.query(Log).distinct(Log.userid).group_by(Log.userid).count()
+    timestamps = session.query(Log).distinct(Log.timestamp).group_by(Log.timestamp).count()
+    count = session.query(Log).count()
+
+    return f'There are a total of {count} entries about {ids} unique ID\'s over {timestamps} timestamps. Currently ' \
+           f'checking every {INTERVAL} seconds. '
+
+
 @client.event
 async def on_message(message):
+    """Message actions"""
+    print(message)
     if message.author == client.user:
         return
 
@@ -193,6 +263,21 @@ async def on_message(message):
         else:
             await client.send_message(message.channel, 'No records deleted.')
 
+    if message.content.startswith('$plotperson '):
+        person, *no_prefix = message.content.split(' ')[1:]
+        plot = parse_msg(no_prefix)
+        if not plot:
+            msg = 'Sorry: please enter your arguments as `dd/mm/yyyy length`, `last / this hour/day/month/year` or `last x hours/././.`.'
+            await client.send_message(message.channel, msg)
+        else:
+            if create_graph(plot[0], plot[1], '', person):
+                await client.send_file(message.channel, 'plot.png')
+            else:
+                await client.send_message(message.channel, 'No data to plot for that period.')
+
+    if message.content.startswith('$myid'):
+        await client.send_message(message.channel, "Your ID is " + message.author.id)
+
     if message.content.startswith('$plot '):
         no_prefix = message.content.split(' ')[1:]
         plot = parse_msg(no_prefix)
@@ -206,9 +291,9 @@ async def on_message(message):
                 await client.send_message(message.channel, 'No data to plot for that period.')
 
 
-# Log in
 @client.event
 async def on_ready():
+    """Login when ready."""
     length = len('# logged in as  #') + len(client.user.name)
     print(length * '#')
     print(f'# Logged in as {client.user.name} #')
